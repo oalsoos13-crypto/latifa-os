@@ -139,7 +139,7 @@ window.__backendReady = (async function(){
   }
   function hideLogin(){ const o=document.getElementById('lf-ov'); if(o)o.remove(); }
   function banner(kind,text,dismiss){ let b=document.getElementById('lf-badge'); if(!b){ b=document.createElement('div'); b.id='lf-badge'; document.body.appendChild(b); } const col={ok:['#eafaef','#1f8a5b'],warn:['#fdf5e6','#b7791f'],bad:['#fdeceb','#c43c3c']}[kind]||['#eee','#333']; b.style.background=col[0]; b.style.color=col[1]; b.innerHTML=`<span style="flex:1">${text}</span>`; if(dismiss){ const x=document.createElement('span'); x.className='x'; x.textContent='✕'; x.onclick=()=>b.remove(); b.appendChild(x);} }
-  function setupBtn(connected){ let b=document.getElementById('lf-badge'); if(!b)return; if(!connected){ const btn=document.createElement('button'); btn.textContent='ربط Firebase'; btn.onclick=openSetup; b.insertBefore(btn,b.firstChild); } else { const btn=document.createElement('button'); btn.textContent='خروج'; btn.onclick=()=>{ try{firebase.auth().signOut();}catch(e){} }; b.appendChild(btn); } }
+  function setupBtn(connected){ let b=document.getElementById('lf-badge'); if(!b)return; if(!connected){ const btn=document.createElement('button'); btn.textContent='ربط Firebase'; btn.onclick=openSetup; b.insertBefore(btn,b.firstChild); } else { const btn=document.createElement('button'); btn.textContent='خروج'; btn.onclick=()=>{ try{firebase.auth().signOut();}catch(e){} }; b.appendChild(btn); const tlo=document.getElementById('logoutBtn'); if(tlo){ tlo.hidden=false; tlo.onclick=()=>{ if(confirm('تسجيل الخروج من النظام؟')){ try{firebase.auth().signOut();}catch(e){} } }; } } }
   function openSetup(){ const cur=(()=>{try{return localStorage.getItem('latifa_fb_cfg')||''}catch(e){return ''}})(); const v=prompt('الصق firebaseConfig كاملاً (JSON) من إعدادات مشروعك في Firebase:\n\nمثال:\n{"apiKey":"…","authDomain":"…","projectId":"…","appId":"…"}', cur); if(v==null)return; try{ const o=JSON.parse(v.replace(/^\s*const\s+firebaseConfig\s*=\s*/,'').replace(/;\s*$/,'')); if(!o.apiKey)throw 0; localStorage.setItem('latifa_fb_cfg',JSON.stringify(o)); const em=prompt('إيميلات المُلّاك (تفصلها فاصلة) — تُمنح صلاحية المالك:',''); if(em)localStorage.setItem('latifa_owner_emails',JSON.stringify(em.split(',').map(x=>x.trim()).filter(Boolean))); alert('تم الحفظ — سيُعاد تحميل الصفحة للاتصال.'); location.reload(); }catch(e){ alert('صيغة غير صحيحة — تأكد من نسخ الكائن كاملاً.'); } }
 })();
 </script>
@@ -358,6 +358,12 @@ td.n,th.n{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif}
 
 /* ---- v2 additions ---- */
 .groups{display:flex;gap:6px;padding:8px 18px 0;overflow-x:auto;scrollbar-width:none}
+.logout-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-family:inherit;font-weight:800;font-size:12.5px;border-radius:999px;padding:6px 14px;cursor:pointer;flex:none}
+.logout-btn:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+body[data-role="cashier"] .groups{gap:10px;padding:12px 16px 6px;flex-wrap:wrap}
+body[data-role="cashier"] .groups button{font-size:15px;padding:14px 16px;flex:1 1 auto;min-width:110px;justify-content:center}
+.cw-task{transition:opacity .2s}
+@media(max-width:640px){.top-in{padding:8px 14px;gap:8px}.groups{padding:8px 14px 0}.groups button{padding:10px 15px;font-size:13.5px}.tabs button{padding:12px 14px;font-size:14px}.wrap{padding-left:14px;padding-right:14px}.logout-btn{padding:7px 13px}body[data-role="cashier"] .groups button{font-size:15.5px;padding:15px 12px}}
 .groups button{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:6px 14px;font-weight:800;font-size:12.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
 .groups button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tree{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -412,6 +418,7 @@ table td.wrap-c{white-space:normal}
     <span class="role" id="rolebadge"></span>
     <div class="spacer"></div>
     <div class="langtog"><button data-lang="ar" class="on" onclick="setLang('ar')">ع</button><button data-lang="en" onclick="setLang('en')">EN</button></div>
+    <button id="logoutBtn" class="logout-btn" hidden>↩ خروج</button>
   </div>
   <div class="groups" id="groups"></div>
   <div class="tabs" id="tabs"></div>
@@ -570,7 +577,7 @@ const GROUPS=[
 ];
 const TABMAP={}; GROUPS.forEach(g=>g.tabs.forEach(t=>TABMAP[t[0]]=g.k));
 function setLang(l){LANG=l;roleBadge();render()}
-function go(tab){ TAB=tab; GRP=TABMAP[tab]||GRP; render(); window.scrollTo({top:0}); }
+function go(tab){ const vg=visibleGroups(); const cur=vg.find(x=>x.k===GRP); const gg=(cur&&cur.tabs.some(t=>t[0]===tab))?cur:vg.find(x=>x.tabs.some(t=>t[0]===tab)); GRP=gg?gg.k:(TABMAP[tab]||GRP); TAB=tab; render(); window.scrollTo({top:0}); }
 function setGrp(g){ GRP=g; TAB=(visibleGroups().find(x=>x.k===g)||GROUPS[0]).tabs[0][0]; render(); }
 function counts(t){ return {plan:S.tasks.length,cash:S.cash.length,waste:S.waste.length,haccp:S.haccp.length,inc:S.incidents.length,chg:S.changes.length,users:S.users.length,sup:S.suppliers.length,audit:S.audits.length,close:S.closes.length,products:S.products.length,complaints:S.complaints.length,rca:S.rca.length,risk:S.risks.length||(SEED.risks_seed||[]).length,sop:S.sops.length||(SEED.sops_seed||[]).length,team:S.team.length,recipe:(SEED.recipes||{}).n}[t]; }
 function render(){
@@ -578,9 +585,12 @@ function render(){
  document.querySelectorAll('.langtog button').forEach(b=>b.classList.toggle('on',b.dataset.lang===LANG));
  $('#groups').innerHTML=visibleGroups().map(g=>`<button class="${GRP===g.k?'on':''}" onclick="setGrp('${g.k}')">${T(g.ar,g.en)}</button>`).join('');
  const VG=visibleGroups(); let g=VG.find(x=>x.k===GRP)||VG[0]; GRP=g.k; if(!g.tabs.some(t=>t[0]===TAB))TAB=g.tabs[0][0];
- $('#tabs').innerHTML=g.tabs.map(([k,ar,en])=>{const c=counts(k);return `<button class="${TAB===k?'on':''}" onclick="go('${k}')">${T(ar,en)}${c!=null?`<span class="cnt num">${c}</span>`:''}</button>`}).join('');
+ document.body.dataset.role=ME.isOwner?'owner':(ME.role||'');
+ const _vt=g.tabs.filter(t=>!t[3]); const _tb=$('#tabs'); _tb.style.display=_vt.length>1?'':'none';
+ _tb.innerHTML=_vt.map(([k,ar,en])=>{const c=counts(k);return `<button class="${TAB===k?'on':''}" onclick="go('${k}')">${T(ar,en)}${c!=null?`<span class="cnt num">${c}</span>`:''}</button>`}).join('');
  const v=$('#view'); v.innerHTML='';
- const R={dash:renderDash,report:renderReport,control:renderControl,track:renderTrack,flash:renderFlash,close:renderClose,score:renderScore,bsc:renderBSC,plan:renderPlan,fin:renderFin,scen:renderScen,sales:renderSales,fc:renderFC,leak:renderLeak,products:renderProducts,menu:renderMenu,recipe:renderRecipe,inv:renderInv,smart:renderSmart,sup:renderSup,cash:renderCash,shift:renderShift,ops:renderOps,waste:renderWaste,haccp:renderHaccp,cust:renderCust,cohort:renderCohort,complaints:renderComplaints,audit:renderAudit,inc:renderInc,chg:renderChg,rca:renderRCA,risk:renderRisk,sop:renderSOP,iso:renderISO,team:renderTeam,users:renderUsers,settings:renderSettings,branches:renderBranches,imp:renderImport};
+ if(!ME.isOwner&&typeof ROLE_GROUPS!=='undefined'&&ROLE_GROUPS[ME.role]){ const _wk=ROLE_GROUPS[ME.role].map(x=>x.k); if(!_wk.includes(TAB)){ const _bk=el('div','row'); _bk.style.marginBottom='10px'; const _bb=el('button','btn sm',`↩ ${T('رجوع لمهامي','Back to my tasks')}`); _bb.onclick=()=>go(g.k); _bk.appendChild(_bb); v.appendChild(_bk); } }
+ const R={dash:renderDash,report:renderReport,control:renderControl,track:renderTrack,flash:renderFlash,close:renderClose,score:renderScore,bsc:renderBSC,plan:renderPlan,fin:renderFin,scen:renderScen,sales:renderSales,fc:renderFC,leak:renderLeak,products:renderProducts,menu:renderMenu,recipe:renderRecipe,inv:renderInv,smart:renderSmart,sup:renderSup,cash:renderCash,shift:renderShift,ops:renderOps,waste:renderWaste,haccp:renderHaccp,cust:renderCust,cohort:renderCohort,complaints:renderComplaints,audit:renderAudit,inc:renderInc,chg:renderChg,rca:renderRCA,risk:renderRisk,sop:renderSOP,iso:renderISO,team:renderTeam,users:renderUsers,settings:renderSettings,branches:renderBranches,imp:renderImport,w_am:vv=>renderCashierWin(vv,'w_am'),w_pm:vv=>renderCashierWin(vv,'w_pm'),w_money:vv=>renderCashierWin(vv,'w_money')};
  try{ (R[TAB]||renderDash)(v); }catch(e){ v.appendChild(el('div','ins bad','⚠ '+esc(e.message))); console.error(e); }
 }
 /* ---------------- UI HELPERS ---------------- */
@@ -1373,8 +1383,64 @@ const ROLE_VIEWS={
  cashier:{groups:['ops','fin'],tabs:['close','cash','waste','haccp','sales','shift'],home:'close'},
  viewer:{groups:['lead'],tabs:['dash','control','report'],home:'dash'}
 };
-function visibleGroups(){ const rv=ROLE_VIEWS[ME.role]; if(!rv||ME.isOwner)return GROUPS; return GROUPS.filter(g=>rv.groups.includes(g.k)).map(g=>({...g,tabs:rv.tabs?g.tabs.filter(t=>rv.tabs.includes(t[0])):g.tabs})).filter(g=>g.tabs.length); }
-function roleHome(){ const rv=ROLE_VIEWS[ME.role]; return rv&&rv.home||'dash'; }
+/* ===== Cashier task windows: Morning / Evening / Financial ===== */
+const CASHIER_WIN={
+ w_am:{icon:'🌅',ar:'الأعمال الصباحية',en:'Morning',cat:'cam',tasks:[
+  {k:'till_open',ar:'فتح الصندوق وعدّ العهدة الافتتاحية',en:'Open till & count opening float',hint:'من شاشة «ضبط الصندوق»',hintEn:'via Cash Control',tab:'cash'},
+  {k:'haccp_am',ar:'فحص السلامة: حرارة الثلاجات/المجمّدات وصلاحية المنتجات',en:'Safety: fridge/freezer temps & product dates',hint:'من شاشة «السلامة HACCP»',hintEn:'via HACCP',tab:'haccp'},
+  {k:'clean_am',ar:'نظافة الصالة والحمامات ومظهر الموظفين',en:'Front-of-house, restrooms & staff appearance'},
+  {k:'prep_am',ar:'تجهيز المحطات وتقطيع الفاكهة FIFO ومراجعة النواقص',en:'Stations prep, FIFO fruit & restock check'},
+  {k:'peak_am',ar:'مراجعة جدول الذروة وتوزيع المهام',en:'Review peak schedule & assign tasks',hint:'من شاشة «جدولة الذروة»',hintEn:'via Peak Scheduling',tab:'shift'},
+  {k:'menu_am',ar:'التأكد من توفّر كل الأصناف والأسعار (بورد 86)',en:'All items available & prices (86 board)'},
+ ]},
+ w_pm:{icon:'🌙',ar:'الأعمال المسائية',en:'Evening',cat:'cpm',tasks:[
+  {k:'waste_pm',ar:'تسجيل الهدر اليومي',en:'Log daily waste',hint:'من شاشة «سجل الهدر»',hintEn:'via Waste Log',tab:'waste'},
+  {k:'haccp_pm',ar:'فحص الإغلاق: تغطية وحفظ المنتجات وتنظيف المعدات',en:'Closing checks: store products & clean equipment',hint:'من شاشة «السلامة HACCP»',hintEn:'via HACCP',tab:'haccp'},
+  {k:'clean_pm',ar:'تنظيف عميق للمحطات والأرضيات ودورات المياه',en:'Deep clean stations, floors & restrooms'},
+  {k:'close_pm',ar:'تعبئة الإقفال اليومي (تشغيلي + مالي)',en:'Fill the daily close sheet',hint:'من شاشة «الإقفال اليومي»',hintEn:'via Daily Close',tab:'close'},
+  {k:'lock_pm',ar:'إطفاء المعدات وتفعيل الإنذار وإغلاق الفرع',en:'Power off, arm alarm & lock up'},
+ ]},
+ w_money:{icon:'💰',ar:'الأعمال المالية',en:'Financial',cat:'cmoney',tasks:[
+  {k:'sales_mn',ar:'إدخال مبيعات اليوم (صافي + عدد الطلبات)',en:'Enter today sales (net + orders)',hint:'من شاشة «المبيعات اليومية»',hintEn:'via Daily Sales',tab:'sales'},
+  {k:'cash_mn',ar:'ضبط الصندوق ومطابقة النقد (الفرق)',en:'Reconcile till & cash variance',hint:'من شاشة «ضبط الصندوق»',hintEn:'via Cash Control',tab:'cash'},
+  {k:'deposit_mn',ar:'تجهيز الإيداع البنكي/تسليم النقد للمدير',en:'Prepare bank deposit / hand cash to manager'},
+  {k:'pay_mn',ar:'مراجعة مدفوعات كي-نت والتوصيل ومطابقتها',en:'Review & match K-net and delivery payments'},
+ ]},
+};
+const ROLE_GROUPS={ cashier:[
+ {k:'w_am',ar:'🌅 الصباحية',en:'🌅 Morning',tabs:[['w_am','الصباحية','Morning'],['cash','الصندوق','Cash',1],['haccp','السلامة','HACCP',1],['shift','الذروة','Peak',1]]},
+ {k:'w_pm',ar:'🌙 المسائية',en:'🌙 Evening',tabs:[['w_pm','المسائية','Evening'],['waste','الهدر','Waste',1],['haccp','السلامة','HACCP',1],['close','الإقفال','Close',1]]},
+ {k:'w_money',ar:'💰 المالية',en:'💰 Financial',tabs:[['w_money','المالية','Financial'],['sales','المبيعات','Sales',1],['cash','الصندوق','Cash',1]]},
+]};
+try{ Object.values(ROLE_GROUPS).forEach(gs=>gs.forEach(g=>{ TABMAP[g.k]=g.k; })); }catch(e){}
+let cwBranch='';
+function renderCashierWin(v,winKey){
+ const W=CASHIER_WIN[winKey]; if(!W){ renderDash(v); return; }
+ if(!cwBranch||!BRS.includes(cwBranch)) cwBranch=BRS[0];
+ head(v,`${W.icon} ${T(W.ar,W.en)}`,T('خلّص كل مهمة وعلّم عليها ✔ — يُحفظ تلقائياً ويقدر المالك يشوف مين خلّص وش','Do each task and tick ✔ — auto-saved; the owner sees who did what'));
+ const ctx=el('div','row'); ctx.style.cssText='gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px';
+ ctx.insertAdjacentHTML('beforeend',`<span class="sub">${T('الفرع','Branch')}:</span>`);
+ const sel=el('select','inline'); BRS.forEach(b=>{ const o=el('option'); o.value=b; o.textContent=BRL(b); if(b===cwBranch)o.selected=true; sel.appendChild(o); }); sel.onchange=()=>{ cwBranch=sel.value; render(); }; ctx.appendChild(sel);
+ ctx.insertAdjacentHTML('beforeend',`<span class="sub">· ${TODAY}</span>`);
+ v.appendChild(ctx);
+ const id=TODAY+'_'+cwBranch+'_'+W.cat; const doc=(S.checks||[]).find(x=>x.id===id)||{done:{}}; const dn=doc.done||{};
+ const total=W.tasks.length, done=W.tasks.filter(t=>dn[t.k]).length, pct=total?Math.round(done/total*100):0;
+ const prog=el('div','card'); prog.style.marginBottom='12px';
+ prog.innerHTML=`<div class="row rowb"><b>${T('إنجاز اليوم','Today progress')}</b><b class="num">${done}/${total}</b></div><div style="height:12px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin-top:8px"><div style="height:100%;width:${pct}%;background:${(done===total&&total)?'var(--good)':'var(--accent)'};transition:width .3s"></div></div>${(done===total&&total)?`<p class="sub" style="margin:8px 0 0;color:var(--good);font-weight:800">✅ ${T('خلّصت كل مهامك — ممتاز!','All tasks done — great!')}</p>`:''}`;
+ v.appendChild(prog);
+ const canWrite=ME.isOwner||['owner','manager','cashier'].includes(ME.role);
+ W.tasks.forEach((t,i)=>{ const on=!!dn[t.k]; const c=el('div','card cw-task'); c.style.cssText='margin-bottom:10px;padding:14px'+(on?';opacity:.6':'');
+  const row=el('div','row rowb'); row.style.cssText='gap:12px;align-items:flex-start';
+  const lab=el('label'); lab.style.cssText='display:flex;gap:11px;align-items:flex-start;cursor:pointer;flex:1;min-width:0';
+  lab.innerHTML=`<input type="checkbox" ${on?'checked':''} ${canWrite?'':'disabled'} style="width:23px;height:23px;margin-top:1px;flex:none;accent-color:var(--good)"><span style="min-width:0"><b style="font-size:15px;display:block;line-height:1.4">${i+1}. ${T(t.ar,t.en||t.ar)}</b>${t.hint?`<span class="sub">${T(t.hint,t.hintEn||t.hint)}</span>`:''}</span>`;
+  lab.querySelector('input').onchange=e=>{ checkToggle(id,W.cat,cwBranch,t.k,e.target.checked); };
+  row.appendChild(lab);
+  if(t.tab){ const b=el('button','btn pri sm',`${T('افتح','Open')} ↩`); b.style.flex='none'; b.onclick=()=>go(t.tab); row.appendChild(b); }
+  c.appendChild(row); v.appendChild(c);
+ });
+}
+function visibleGroups(){ if(!ME.isOwner&&typeof ROLE_GROUPS!=='undefined'&&ROLE_GROUPS[ME.role])return ROLE_GROUPS[ME.role]; const rv=ROLE_VIEWS[ME.role]; if(!rv||ME.isOwner)return GROUPS; return GROUPS.filter(g=>rv.groups.includes(g.k)).map(g=>({...g,tabs:rv.tabs?g.tabs.filter(t=>rv.tabs.includes(t[0])):g.tabs})).filter(g=>g.tabs.length); }
+function roleHome(){ if(!ME.isOwner&&typeof ROLE_GROUPS!=='undefined'&&ROLE_GROUPS[ME.role])return ROLE_GROUPS[ME.role][0].tabs[0][0]; const rv=ROLE_VIEWS[ME.role]; return rv&&rv.home||'dash'; }
 
 /* ---- Targets (editable once in Settings; defaults from the reference) ---- */
 const TARGET_DEFS=[
